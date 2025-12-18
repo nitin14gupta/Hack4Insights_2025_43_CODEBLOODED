@@ -7,36 +7,36 @@
 pip install -r requirements.txt
 ```
 
-### Step 2: Generate Sample Data (Optional)
-If you don't have your own data files:
-```bash
-python generate_sample_data.py
-```
-
-### Step 3: Clean Data
-```bash
-python -m backend.data_cleaning
-```
-
-### Step 4: Launch Dashboard
-```bash
-streamlit run frontend/app.py
-```
-
-Or use the convenience script:
-```bash
-./run_dashboard.sh
-```
-
-## 📁 Data Files Required
-
+### Step 2: Place Your Data Files
 Place your CSV files in `data/raw/`:
 - `sessions.csv`
 - `orders.csv`
 - `products.csv`
 - `refunds.csv`
 
+**Note:** If you don't have data files yet, you can generate sample data with:
+```bash
+python generate_sample_data.py
+```
+
 See `README.html` for detailed data schema requirements.
+
+### Step 3: Clean Data
+```bash
+python -m backend.data_cleaning
+```
+
+This will process your raw data files and create cleaned versions in `data/cleaned/`.
+
+### Step 4: Launch Dashboard
+```bash
+streamlit run frontend/app.py
+```
+
+Or use the convenience script (automatically runs data cleaning if needed):
+```bash
+./run_dashboard.sh
+```
 
 ## 🎯 Dashboard Pages
 
