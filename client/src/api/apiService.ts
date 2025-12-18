@@ -88,7 +88,19 @@ class ApiService {
             throw error;
         }
     }
+
+    async getInsights(range: string): Promise<any> {
+        try {
+            const response = await fetch(`${this.baseURL}/api/insights?range=${range}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Failed to fetch insights:", error);
+            throw error;
+        }
+    }
 }
 
 export const apiService = new ApiService();
-

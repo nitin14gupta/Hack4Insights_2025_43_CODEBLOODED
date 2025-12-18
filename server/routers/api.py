@@ -62,3 +62,44 @@ async def chat_with_data(request: ChatRequest):
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi.responses import StreamingResponse
+from server.services.pdf_service import BearCartReport
+
+@router.get("/export/pdf")
+async def export_pdf(range: str = "Month"):
+    if not metrics_service:
+        raise HTTPException(status_code=500, detail="Metrics service not initialized")
+    
+    try:
+        # Get data for the requested range
+        data = metrics_service.get_dashboard_data(time_range=range)
+        
+        # Generate PDF
+        report = BearCartReport()
+        pdf_buffer = report.generate(data, time_range=range)
+        
+        headers = {
+            'Content-Disposition': f'attachment; filename="BearCart_Report_{range}.pdf"'
+        }
+        
+        return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/insights")
+async def get_insights(range: str = "Month"):
+    if not metrics_service:
+        raise HTTPException(status_code=500, detail="Metrics service not initialized")
+    
+    try:
+        # Get context data
+        context_data = metrics_service.get_dashboard_data(time_range=range)
+        
+        # Generate insights
+        insights = chat_agent.generate_strategic_insights(context_data)
+        return insights
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

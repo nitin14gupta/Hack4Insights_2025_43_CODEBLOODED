@@ -12,8 +12,7 @@ boto3
 email-validator
 python-multipart
 requests
-langchain-openai
-langchain-core
-langchain-openai
-langchain-core
 langchain-google-genai
+google-genai
+reportlab
+reportlab

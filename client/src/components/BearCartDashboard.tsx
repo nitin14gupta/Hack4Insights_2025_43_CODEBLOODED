@@ -7,15 +7,15 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from "recharts";
 import {
   LayoutGrid, TrendingUp, Users, Wallet, Settings, Bell, Search,
   Menu, X, Download, BarChart3, Activity, AlertCircle, ShoppingCart,
   Package, DollarSign, Target, Loader2,
-  Bot, ArrowRight, MessageSquare
-} from "lucide-react";
+  Bot, ArrowRight, MessageSquare, FileText
+} from 'lucide-react';
 import { cn } from "@/src/lib/utils";
 import { BEARCART_COLORS, BEARCART_METRICS } from "./BearCartTheme";
 import {
@@ -175,6 +175,38 @@ const ChatInterface = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+const LoadingMessages = () => {
+  const messages = [
+    "Connecting to neural engine...",
+    "Scanning conversion funnels...",
+    "Analyzing recent refund patterns...",
+    "Identifying high-value segments...",
+    "Drafting strategic recommendations..."
+  ];
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex(prev => (prev + 1) % messages.length);
+    }, 800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.p
+        key={index}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: -20, opacity: 0 }}
+        className="text-green-400 font-mono text-lg font-bold"
+      >
+        {messages[index]}
+      </motion.p>
+    </AnimatePresence>
+  );
+};
+
 export default function BearCartDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [qualityReport, setQualityReport] = useState<any>(null);
@@ -185,6 +217,26 @@ export default function BearCartDashboard() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [aiInsights, setAiInsights] = useState<{ opportunities: any[], risks: any[] } | null>(null);
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+
+  // Fetch Insights On Demand
+  const handleStrategistClick = async () => {
+    setShowInsightsModal(true);
+    setAiInsights(null); // Clear previous to show loading
+    setIsInsightsLoading(true);
+
+    try {
+      const insights = await apiService.getInsights(timeRange);
+      setAiInsights(insights);
+    } catch (err) {
+      console.error("Failed to fetch insights", err);
+    } finally {
+      setIsInsightsLoading(false);
+    }
+  };
 
   // Fetch Data
   useEffect(() => {
@@ -197,6 +249,8 @@ export default function BearCartDashboard() {
         ]);
         setData(dashboardResult);
         setQualityReport(qualityResult);
+        // Insights now fetched on demand
+        setAiInsights(null);
       } catch (err) {
         console.error("Failed to load dashboard data", err);
         // Fallback or error state could be handled here
@@ -418,20 +472,63 @@ export default function BearCartDashboard() {
                 ))}
               </div>
 
-              {/* Notifications */}
-              <button className="relative w-12 h-12 bg-white border-[3px] border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-1 active:shadow-none transition-all hover:bg-purple-50">
-                <Bell className="w-6 h-6" />
-                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full text-white text-xs font-bold flex items-center justify-center">3</span>
+              {/* Strategist AI Toggle (Replacing Notifications) */}
+              <button
+                onClick={handleStrategistClick}
+                className="relative w-12 h-12 bg-black text-white border-[3px] border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_#888] active:translate-y-1 active:shadow-none transition-all hover:bg-slate-800"
+              >
+                <Bot className="w-6 h-6" />
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-green-500 text-[10px] items-center justify-center font-bold text-white border border-black">AI</span>
+                </span>
               </button>
 
               {/* Export */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-12 h-12 bg-white border-[3px] border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-purple-50"
-              >
-                <Download className="w-6 h-6" />
-              </motion.button>
+              <div className="relative z-50">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                  className="w-12 h-12 bg-white border-[3px] border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-purple-50"
+                  id="header-download-btn"
+                >
+                  <Download className="w-6 h-6" />
+                </motion.button>
+
+                <AnimatePresence>
+                  {showDownloadMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                      className="absolute top-14 right-0 bg-white border-2 border-black shadow-[4px_4px_0px_#000] rounded-xl p-2 w-48 flex flex-col gap-2"
+                    >
+                      <span className="text-xs font-bold text-slate-500 px-2">Download Report</span>
+                      <a
+                        href={`http://localhost:8000/api/export/pdf?range=${timeRange}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 p-2 hover:bg-green-100 rounded-lg text-sm font-bold border border-transparent hover:border-black transition-all"
+                        onClick={() => setShowDownloadMenu(false)}
+                      >
+                        <FileText className="w-4 h-4" />
+                        Current View ({timeRange})
+                      </a>
+                      <a
+                        href={`http://localhost:8000/api/export/pdf?range=Month`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 p-2 hover:bg-yellow-100 rounded-lg text-sm font-bold border border-transparent hover:border-black transition-all"
+                        onClick={() => setShowDownloadMenu(false)}
+                      >
+                        <BarChart className="w-4 h-4" />
+                        Monthly Report
+                      </a>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </header>
 
@@ -449,6 +546,9 @@ export default function BearCartDashboard() {
                   transition={{ duration: 0.3 }}
                   className="space-y-6 pb-10"
                 >
+
+                  {/* KPI Grid */}
+
                   {/* KPI Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <KPICard
@@ -1176,6 +1276,24 @@ export default function BearCartDashboard() {
                       <h3 className="text-xl font-black mb-4 flex items-center gap-2">
                         <Activity className="w-5 h-5" /> Data Management
                       </h3>
+
+                      {/* Export Controls */}
+                      <div className="flex flex-col md:flex-row gap-4 mb-4">
+                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-300">
+                          <span className="text-sm font-bold ml-2">Export Range:</span>
+                          <select
+                            className="bg-transparent font-bold outline-none"
+                            value={timeRange}
+                            onChange={(e) => setTimeRange(e.target.value)}
+                          >
+                            <option value="Week">Last Week</option>
+                            <option value="Month">Last Month</option>
+                            <option value="Quarter">Last Quarter</option>
+                            <option value="Year">Last Year</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div className="flex gap-4 flex-wrap">
                         <button
                           onClick={() => window.location.reload()}
@@ -1183,9 +1301,15 @@ export default function BearCartDashboard() {
                         >
                           <Loader2 className="w-4 h-4" /> Refresh Dashboard
                         </button>
-                        <button className="px-6 py-3 bg-black text-white border-2 border-black rounded-xl shadow-[4px_4px_0px_#888] active:translate-y-1 active:shadow-none transition-all font-bold flex items-center gap-2 hover:bg-slate-800">
-                          <Download className="w-4 h-4" /> Export All Data (CSV)
-                        </button>
+
+                        <a
+                          href={`http://localhost:8000/api/export/pdf?range=${timeRange}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-6 py-3 bg-black text-white border-2 border-black rounded-xl shadow-[4px_4px_0px_#888] active:translate-y-1 active:shadow-none transition-all font-bold flex items-center gap-2 hover:bg-slate-800"
+                        >
+                          <Download className="w-4 h-4" /> Export Report (PDF)
+                        </a>
                       </div>
                       <p className="mt-4 text-xs text-slate-500">
                         * Export includes raw session, order, and product data used for current visualizations.
@@ -1227,6 +1351,121 @@ export default function BearCartDashboard() {
         {/* Chat Interface Modal */}
         <AnimatePresence>
           {chatOpen && <ChatInterface onClose={() => setChatOpen(false)} />}
+        </AnimatePresence>
+
+        {/* AI Strategist Modal */}
+        <AnimatePresence>
+          {showInsightsModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowInsightsModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-slate-900 text-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-4 border-slate-700 shadow-[8px_8px_0px_#000] p-6 relative min-h-[500px]"
+              >
+                <button
+                  onClick={() => setShowInsightsModal(false)}
+                  className="absolute top-4 right-4 p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors z-10"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                <div className="flex items-center justify-center mb-8 relative">
+                  <div className="absolute left-0 top-0 flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className={`${isInsightsLoading ? 'bg-yellow-400' : 'bg-green-400'} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75`}></span>
+                      <span className={`relative inline-flex rounded-full h-3 w-3 ${isInsightsLoading ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+                    </span>
+                    <span className={`text-xs font-mono ${isInsightsLoading ? 'text-yellow-400' : 'text-green-400'}`}>
+                      {isInsightsLoading ? "PROCESSING DATA..." : "LIVE ANALYSIS"}
+                    </span>
+                  </div>
+                  <h3 className="text-3xl font-black flex items-center gap-3">
+                    <span className="text-4xl">🤖</span> BearCart Strategist
+                  </h3>
+                </div>
+
+                {isInsightsLoading ? (
+                  <div className="flex flex-col items-center justify-center h-64 space-y-6">
+                    <div className="relative w-24 h-24">
+                      <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-t-green-500 rounded-full animate-spin"></div>
+                      <Bot className="absolute inset-0 m-auto w-10 h-10 text-green-500 animate-pulse" />
+                    </div>
+
+                    <div className="h-8 overflow-hidden relative">
+                      <LoadingMessages />
+                    </div>
+                  </div>
+                ) : aiInsights ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Opportunities */}
+                    <div className="bg-slate-800/50 p-6 rounded-2xl border-2 border-slate-700">
+                      <h4 className="text-green-400 font-bold text-xl mb-6 flex items-center gap-2">
+                        <TrendingUp className="w-6 h-6" /> Growth Opportunities
+                      </h4>
+                      <ul className="space-y-4">
+                        {aiInsights.opportunities.map((opp, idx) => (
+                          <li key={idx} className="flex gap-4 items-start p-3 hover:bg-slate-700/50 rounded-xl transition-colors border border-transparent hover:border-green-900/50">
+                            <span className="text-green-500 font-black text-2xl opacity-50">0{idx + 1}</span>
+                            <div>
+                              <p className="font-bold text-lg text-slate-200 mb-1">{opp.title}</p>
+                              <p className="text-sm text-slate-400 leading-relaxed mb-2">{opp.description}</p>
+                              {opp.impact && (
+                                <span className="inline-block px-2 py-1 bg-green-900/30 text-green-300 text-xs font-bold rounded border border-green-800">
+                                  {opp.impact} Impact
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Risks */}
+                    <div className="bg-slate-800/50 p-6 rounded-2xl border-2 border-slate-700">
+                      <h4 className="text-red-400 font-bold text-xl mb-6 flex items-center gap-2">
+                        <AlertCircle className="w-6 h-6" /> Critical Risks
+                      </h4>
+                      <ul className="space-y-4">
+                        {aiInsights.risks.map((risk, idx) => (
+                          <li key={idx} className="flex gap-4 items-start p-3 hover:bg-slate-700/50 rounded-xl transition-colors border border-transparent hover:border-red-900/50">
+                            <span className="text-red-500 font-black text-2xl opacity-50">!</span>
+                            <div>
+                              <p className="font-bold text-lg text-slate-200 mb-1">{risk.title}</p>
+                              <p className="text-sm text-slate-400 leading-relaxed mb-2">{risk.description}</p>
+                              {risk.severity && (
+                                <span className="inline-block px-2 py-1 bg-red-900/30 text-red-300 text-xs font-bold rounded border border-red-800">
+                                  {risk.severity} Severity
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-red-400">Failed to load insights.</div>
+                )}
+
+                {!isInsightsLoading && aiInsights && (
+                  <div className="mt-8 text-center">
+                    <p className="text-slate-500 text-sm font-mono">
+                      Analysis based on real-time processing of {timeRange}ly sessions, orders, and refund data.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
       </div >
