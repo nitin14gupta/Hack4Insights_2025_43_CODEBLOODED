@@ -5,6 +5,7 @@ export interface ProductMetric {
     sales_count: number;
     total_revenue: number;
     total_margin: number;
+    refund_rate?: number;
 }
 
 export interface FunnelSteps {
@@ -37,9 +38,9 @@ class ApiService {
         this.baseURL = API_CONFIG.BASE_URL;
     }
 
-    async getDashboardData(): Promise<DashboardData> {
+    async getDashboardData(timeRange: string = 'Month'): Promise<DashboardData> {
         try {
-            const response = await fetch(`${this.baseURL}/api/dashboard`);
+            const response = await fetch(`${this.baseURL}/api/dashboard?range=${timeRange}`);
             if (!response.ok) {
                 // If backend is down or 500, we might want to return null or throw
                 // But let's assume valid JSON error if expected
@@ -54,6 +55,19 @@ class ApiService {
             return await response.json();
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
+            throw error;
+        }
+    }
+
+    async getQualityReport(): Promise<any> {
+        try {
+            const response = await fetch(`${this.baseURL}/api/quality`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Failed to fetch quality report:", error);
             throw error;
         }
     }
