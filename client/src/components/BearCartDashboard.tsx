@@ -8,7 +8,8 @@ import {
 } from "framer-motion";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+  CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  ComposedChart, Line
 } from "recharts";
 import {
   LayoutGrid, TrendingUp, Users, Wallet, Settings, Bell, Search,
@@ -421,6 +422,104 @@ const Simulator = ({ currentRevenue, currentOrders }: { currentRevenue: number, 
   );
 }
 
+const PredictiveForecast = () => {
+  const [horizon, setHorizon] = useState(3);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadForecast = async () => {
+      setLoading(true);
+      try {
+        const res = await apiService.getForecast(horizon);
+        // Transform for Recharts
+        if (res.labels) {
+          const chartData = res.labels.map((label: string, i: number) => ({
+            name: label,
+            actual: res.actual[i] || null,
+            // Fix offset logic based on dynamic horizon
+            forecast: res.forecast && i >= res.labels.length - horizon ? res.forecast[i - (res.labels.length - horizon)] : null,
+            trend: res.historical ? res.historical[i] : null
+          }));
+          setData({ chartData, meta: res });
+        }
+      } catch (e) {
+        console.error("Forecast error", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadForecast();
+  }, [horizon]);
+
+  if (loading) return <div className="p-12 text-center text-slate-500 font-mono animate-pulse">Calculating Linear Regression Model...</div>;
+  if (!data) return <div className="p-12 text-center text-red-400">Not enough data for forecast.</div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+      <HybridCard interactive className="bg-slate-900 text-white border-slate-700">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500 rounded-lg text-white"><TrendingUp className="w-6 h-6" /></div>
+            <div>
+              <h2 className="text-2xl font-black">AI Predictive Forecast</h2>
+              <p className="text-slate-400 text-sm">Linear Regression Outlook</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {[
+              { label: '1M', val: 1 },
+              { label: '3M', val: 3 },
+              { label: '6M', val: 6 },
+              { label: '1Y', val: 12 },
+              { label: '2Y', val: 24 }
+            ].map(opt => (
+              <button
+                key={opt.val}
+                onClick={() => setHorizon(opt.val)}
+                className={cn(
+                  "px-3 py-1 rounded-lg text-xs font-bold transition-all border border-slate-600",
+                  horizon === opt.val
+                    ? "bg-blue-500 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-right hidden md:block">
+            <p className="text-sm text-slate-400">Growth Rate</p>
+            <p className={`text-3xl font-black ${data.meta.growth_rate_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {data.meta.growth_rate_pct > 0 ? '+' : ''}{data.meta.growth_rate_pct}%
+            </p>
+          </div>
+        </div>
+      </HybridCard>
+
+      <div className="h-96 bg-white rounded-[32px] border-[3px] border-black shadow-[8px_8px_0px_#000] p-6">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data.chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 'bold' }} />
+            <YAxis tickFormatter={(val) => `$${val / 1000}k`} />
+            <Tooltip
+              contentStyle={{ borderRadius: '12px', border: '2px solid #000' }}
+              formatter={(val: any) => [`$${Number(val).toLocaleString()}`]}
+            />
+            <Legend />
+            <Bar dataKey="actual" name="Actual Revenue" fill={BEARCART_COLORS.primary.purple} barSize={40} radius={[4, 4, 0, 0]} />
+            <Line type="monotone" dataKey="trend" name="Trend Line" stroke="#cbd5e1" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+            <Line type="monotone" dataKey="forecast" name="AI Forecast" stroke="#10b981" strokeWidth={4} activeDot={{ r: 8 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
 export default function BearCartDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [qualityReport, setQualityReport] = useState<any>(null);
@@ -609,7 +708,7 @@ export default function BearCartDashboard() {
               { id: "Channels", icon: Activity },
               { id: "Products", icon: Package },
               { id: "Funnel", icon: ShoppingCart },
-              { id: "Simulator", icon: TrendingUp },
+              { id: "Strategy", icon: TrendingUp },
               { id: "Reports", icon: BarChart3 },
               { id: "Settings", icon: Settings },
             ].map((item) => (
@@ -1430,16 +1529,24 @@ export default function BearCartDashboard() {
               )}
 
 
-              {/* ===== SIMULATOR TAB ===== */}
-              {activeTab === "Simulator" && (
+              {/* ===== STRATEGY TAB (SIMULATOR + FORECAST) ===== */}
+              {activeTab === "Strategy" && (
                 <motion.div
-                  key="simulator"
+                  key="strategy"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
+                  className="space-y-12 pb-12"
                 >
                   <Simulator currentRevenue={totalRevenue} currentOrders={totalOrders} />
+
+                  <div className="relative">
+                    <div className="absolute inset-x-0 top-0 border-t-4 border-slate-200 border-dashed"></div>
+                    <div className="pt-12">
+                      <PredictiveForecast />
+                    </div>
+                  </div>
                 </motion.div>
               )}
 

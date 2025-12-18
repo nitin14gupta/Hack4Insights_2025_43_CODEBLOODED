@@ -115,6 +115,7 @@ class BearCartMetrics:
             'average_order_value': float(df[df['converted'] == 1]['total_order_value'].mean() if len(df[df['converted'] == 1]) > 0 else 0) if 'converted' in df.columns else 0,
             'revenue_per_session': float(total_revenue / len(df)) if len(df) > 0 else 0,
             'revenue_by_channel': df.groupby('traffic_channel')['total_order_value'].sum().to_dict() if 'traffic_channel' in df.columns else {},
+            'revenue_over_time': df.groupby('session_date')['total_order_value'].sum().reset_index().to_dict('records') if 'session_date' in df.columns else []
         }
         
         return metrics

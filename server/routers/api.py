@@ -103,3 +103,64 @@ async def get_insights(range: str = "Month"):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from server.utils.forecast_utils import calculate_linear_forecast
+from collections import defaultdict
+from datetime import datetime
+
+@router.get("/forecast")
+async def get_forecast(periods: int = 3):
+    """Generate X-month revenue forecast based on yearly history"""
+    if not metrics_service:
+        raise HTTPException(status_code=500, detail="Metrics service not initialized")
+    
+    try:
+        # Get 1 year of data for good trend analysis
+        data = metrics_service.get_dashboard_data(time_range='Year')
+        daily_revenue = data['revenue']['revenue_over_time']
+        
+        if not daily_revenue:
+            return {"error": "No data available for forecasting"}
+
+        # Aggregate to Monthly
+        monthly_rev = defaultdict(float)
+        for entry in daily_revenue:
+            # entry is {'session_date': 'YYYY-MM-DD', 'total_order_value': X}
+            date_str = str(entry['session_date'])[:7] # YYYY-MM
+            monthly_rev[date_str] += float(entry['total_order_value'])
+            
+        # Sort keys
+        sorted_months = sorted(monthly_rev.keys())
+        historical_values = [monthly_rev[m] for m in sorted_months]
+        
+        # Calculate Forecast
+        forecast_result = calculate_linear_forecast(historical_values, periods_to_forecast=periods)
+        
+        # Generate Future Labels
+        last_month = datetime.strptime(sorted_months[-1], "%Y-%m")
+        future_labels = []
+        for i in range(1, periods + 1):
+            # Add Month (rough)
+            next_m = (last_month.month + i - 1) % 12 + 1
+            next_y = last_month.year + ((last_month.month + i + last_month.month - 1) // 12 if (last_month.month + i -1) >= 12 else 0) # Fix logic below
+            # simpler logic:
+            total_months = last_month.month + i
+            year_add = (total_months - 1) // 12
+            month_rem = (total_months - 1) % 12 + 1
+            next_y = last_month.year + year_add
+            future_labels.append(f"{next_y}-{month_rem:02d}")
+            
+        return {
+            "labels": sorted_months + future_labels,
+            "historical": forecast_result["historical_trend"], # The trend line for history
+            "actual": historical_values, # The actual bars
+            "forecast": forecast_result["forecast"],
+            "growth_rate_pct": round(forecast_result["growth_rate"] * 100, 2),
+            "trend_direction": "Up" if forecast_result["slope"] > 0 else "Down"
+        }
+        
+    except Exception as e:
+        print(f"Forecast Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

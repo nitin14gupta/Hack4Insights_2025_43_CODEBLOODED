@@ -15,4 +15,3 @@ requests
 langchain-google-genai
 google-genai
 reportlab
-reportlab

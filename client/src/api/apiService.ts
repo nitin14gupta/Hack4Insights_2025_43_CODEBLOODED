@@ -101,6 +101,16 @@ class ApiService {
             throw error;
         }
     }
+    async getForecast(periods: number = 3): Promise<any> {
+        try {
+            const response = await fetch(`${this.baseURL}/api/forecast?periods=${periods}`);
+            if (!response.ok) throw new Error('Forecast failed');
+            return await response.json();
+        } catch (error) {
+            console.error("Forecast error:", error);
+            throw error;
+        }
+    }
 }
 
 export const apiService = new ApiService();
