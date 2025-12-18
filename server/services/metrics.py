@@ -42,11 +42,17 @@ class BearCartMetrics:
                  self.df_items = pd.DataFrame()
 
         # Load Refunds 
-        raw_refunds_path = os.path.join(data_dir, '../../raw/order_item_refunds.csv')
-        if os.path.exists(raw_refunds_path):
-             self.df_refunds = pd.read_csv(raw_refunds_path)
+        # Load Refunds 
+        refunds_path = os.path.join(data_dir, 'refunds_clean.csv')
+        if os.path.exists(refunds_path):
+             self.df_refunds = pd.read_csv(refunds_path)
         else:
-             self.df_refunds = pd.DataFrame()
+             # Fallback
+             raw_refunds_path = os.path.join(data_dir, '../../raw/order_item_refunds.csv')
+             if os.path.exists(raw_refunds_path):
+                 self.df_refunds = pd.read_csv(raw_refunds_path)
+             else:
+                 self.df_refunds = pd.DataFrame()
 
     def filter_by_date(self, df, date_col, time_range):
         """Filter dataframe by time range relative to max date in data"""

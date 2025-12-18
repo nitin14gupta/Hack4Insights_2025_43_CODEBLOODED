@@ -51,10 +51,25 @@ def run():
     
     # 5. Save Outputs
     print("\n--- Saving Outputs ---")
+    
+    # Cleaned Data (Submission Requirement 1)
+    CLEANED_DIR = os.path.join(BASE_DIR, 'data', 'cleaned')
+    os.makedirs(CLEANED_DIR, exist_ok=True)
+    
+    df_sessions_clean.to_csv(os.path.join(CLEANED_DIR, 'website_sessions_clean.csv'), index=False)
+    df_orders_clean.to_csv(os.path.join(CLEANED_DIR, 'orders_clean.csv'), index=False)
+    df_items_clean.to_csv(os.path.join(CLEANED_DIR, 'order_items_clean.csv'), index=False)
+    df_products_clean.to_csv(os.path.join(CLEANED_DIR, 'products_clean.csv'), index=False)
+    df_refunds_clean.to_csv(os.path.join(CLEANED_DIR, 'order_item_refunds_clean.csv'), index=False)
+    
+    # Processed Data (for Dashboard App)
     df_sessions_clean.to_csv(os.path.join(PROCESSED_DIR, 'sessions_clean.csv'), index=False)
     df_orders_clean.to_csv(os.path.join(PROCESSED_DIR, 'orders_clean.csv'), index=False)
-    df_items_clean.to_csv(os.path.join(PROCESSED_DIR, 'items_clean.csv'), index=False) # New
+    df_items_clean.to_csv(os.path.join(PROCESSED_DIR, 'items_clean.csv'), index=False)
     df_master_features.to_csv(os.path.join(PROCESSED_DIR, 'master_dataset.csv'), index=False)
+    # Add missing ones for app completeness
+    df_products_clean.to_csv(os.path.join(PROCESSED_DIR, 'products_clean.csv'), index=False)
+    df_refunds_clean.to_csv(os.path.join(PROCESSED_DIR, 'refunds_clean.csv'), index=False)
     
     # Save reports
     with open(os.path.join(PROCESSED_DIR, 'quality_report.json'), 'w') as f:

@@ -103,8 +103,6 @@ async def get_insights(range: str = "Month"):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 from server.utils.forecast_utils import calculate_linear_forecast
 from collections import defaultdict
