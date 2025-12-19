@@ -26,8 +26,7 @@ async def health_check_loop():
     await asyncio.sleep(5)
     while True:
         try:
-            # Use localhost:8000 as defined in docker-compose/default
-            response = await asyncio.to_thread(requests.get, "http://127.0.0.1:8000/health")
+            response = await asyncio.to_thread(requests.get, "https://bearcart.onrender.com/health")
             logger.info(f"Health check status: {response.status_code}")
         except Exception as e:
             logger.warning(f"Health check failed: {e}")
